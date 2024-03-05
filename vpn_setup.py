@@ -119,58 +119,47 @@ def get_local_ip():
         print("Error getting local IP:", e)
         return None
 
-def vpn_server_tcp(host,port):
+def send_message_tcp(host,port,message):
     try:
-        server=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        server.bind((host,port))
-        server.listen(1)
-        print("\nVPN communication channel for TCP is up and server is listening on {} : {}".format(host,port))
-        while True:
-            client_socket,client_address=server.accept()
-            data=client_socket.recv(1024)
-            print("Received TCP message from {}: {}".format(client_address,data.decode("utf-8")))
-            client_socket.close()
-            start_app()
-    except Exception as e:
-        print("Error in TCP VPN server:", e)
-    start_app()
-
-def vpn_client_tcp(host,port):
-    try:
-        client_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_tcp.connect((host, port))
-        print("\nSuccessfully connected to the VPN TCP server")
-        msg=input("\nEnter your message: ")
-        client_tcp.sendall(msg.encode())
+        client_tcp=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        client_tcp.connect((host,port))
+        print("\nSuccessfully connected to the TCP server")
+        client_tcp.sendall(message.encode())
         client_tcp.close()
     except Exception as e:
-        print("Error in TCP VPN client:", e)
-        start_app()
-    
+        print("Error in TCP client:", e)
 
-def vpn_client_udp(host,port):
+def receive_message_tcp(host, port):
     try:
-        client_udp=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        print("\nSuccessfully connected to the VPN UDP server")
-        msg=input("\nEnter your message")
-        client_udp.sendto(msg.encode(),(host,port))
+        server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        server.bind((host,port))
+        server.listen(1)
+        print("\nTCP server is listening on {}:{}".format(host, port))
+        client_socket, client_address = server.accept()
+        data = client_socket.recv(1024)
+        print("Received TCP message from {}:{}".format(client_address, data.decode("utf-8")))
+        client_socket.close()
+    except Exception as e:
+        print("Error in TCP server:",e)
+
+def send_message_udp(host, port, message):
+    try:
+        client_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        print("\nSuccessfully connected to the UDP server")
+        client_udp.sendto(message.encode(),(host, port))
         client_udp.close()
     except Exception as e:
-        print("Error in UDP VPN client:", e)
-        start_app()
+        print("Error in UDP client:",e)
 
-def vpn_server_udp(host,port):
+def receive_message_udp(host, port):
     try:
-        server=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        server.bind((host,port))
-        print("\nVPN communication channel for UDP is up and server is listening on {} : {}".format(host,port))
-        while True:
-            data,client_address =server.recvfrom(1024)
-            print("Received UDP message from {}: {}".format(client_address,data.decode("utf-8")))
-            start_app()
+        server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server.bind((host, port))
+        print("\nUDP server is listening on {}:{}".format(host, port))
+        data, client_address = server.recvfrom(1024)
+        print("Received UDP message from {}: {}".format(client_address,data.decode("utf-8")))
     except Exception as e:
-        print("Error in UDP VPN server:", e)
-    start_app()
+        print("Error in UDP server:",e)
 
 def web_connect(web_ip,web_port):
     try:
@@ -257,15 +246,29 @@ def start_app():
         port_udp=54321
         con_type=input("\nEnter communication_tcp, communication_udp, advanced_website, simple_website, quick_select_sites based on what type of connection you want to utilize \nenter log_out if you want to quit\nenter display_user_history to see your history: ")
         if con_type=="communication_tcp":
-            dest_ip=input("Enter the destination's IP address: ")
-            server_tcp_thread=threading.Thread(target=vpn_server_tcp,args=(host,port_tcp))
-            server_tcp_thread.start()
-            vpn_client_tcp(dest_ip,port_tcp)
+            dest_ip=input("\nEnter the destination's IP address: ")
+            sr=input("\nsend or recieve ? ")
+            if sr=="send":
+                sendmsg=str(input("\nenter your message : "))
+                send_message_tcp(dest_ip,port_tcp,sendmsg)
+            elif sr=="recieve":
+                receive_message_tcp(host,port_tcp)
+            else:
+                print("\n please select a valid option .")
+                start_app()
+            start_app()
         elif con_type=="communication_udp":
             dest_ip=input("Enter the destination's IP address: ")
-            server_udp_thread=threading.Thread(target=vpn_server_udp,args=(host,port_udp))
-            server_udp_thread.start()
-            vpn_client_udp(dest_ip,port_udp)
+            src=input("\nsend or recieve ? ")
+            if src=="send":
+                sendumsg=str(input("\nenter your message : "))
+                send_message_udp(dest_ip,port_udp,sendumsg)
+            elif src=="recieve":
+                receive_message_udp(host,port_udp)
+            else:
+                print("\n please select a valid option .")
+                start_app()
+            start_app()
         elif con_type=="advanced_website":
             web_ip=input("Enter website's IP address: ")
             web_port=int(input("Enter website's port: "))
@@ -300,6 +303,7 @@ def start_app():
     except Exception as e:
         print("Error in start_app:", e)
         main_page()
+
 
 def main_page():
     try:
